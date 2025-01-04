@@ -9,6 +9,9 @@ comms_to_desc = {
     "help": 'Gives information about command usage\nUsage: python main.py help (command)\n',
 }
 
+def is_archive(filename):
+    return filename.endswith('.pk') and os.path.isfile(filename)
+
 def create_archive(args):
     if not os.path.isdir(args[2]):
         raise ValueError("Destination must be a directory\n")
@@ -50,35 +53,29 @@ def create_archive(args):
             input_file.close()
 
         archive.close()
-    pass
 
 def list_content(args):
     #file must be an archive
     archive_path = args[2]
     if not os.path.isfile(archive_path):
         raise ValueError("Archive does not exist\n")
-    if len(archive_path) < 4 or not archive_path.endswith('.pk'):
+    if len(archive_path) < 4 or not is_archive(archive_path):
         raise ValueError("Archive must end with .pk\n")
 
     headers = []
 
     with open(archive_path, "rb") as archive:
         while True:
-            # Read the 264-byte header
             header = archive.read(264)
             if not header:
-                break  # End of file
+                break
 
-            # Extract file name (256 bytes, remove padding)
             file_name = header[:256].rstrip(b'\x00').decode('utf-8')
 
-            # Extract file size (next 8 bytes)
             file_size = int(header[256:264].decode('utf-8'))
-            # Store file details
             headers.append((file_name, file_size))
 
-            # Skip the file content to move to the next header
-            archive.seek(file_size, 1)  # Move file pointer forward by `file_size` bytes
+            archive.seek(file_size, 1)
 
     if sum(header[1] for header in headers) + 264 * len(headers) != os.path.getsize(archive_path):
         raise ValueError("Corrupted archive. File Headers don't match file contents.\n")
@@ -89,7 +86,32 @@ def list_content(args):
 
 def full_unpack(args):
     #archive followed by a destination
-    pass
+    if not is_archive(args[2]) and not os.path.isdir(args[3]):
+        raise ValueError("Parameters must be an archive and a destination directory.\n")
+
+    destination = args[3]
+    with open(args[2], "rb") as archive:
+        while True:
+            header = archive.read(264)
+            if not header:
+                break
+
+            file_name = header[:256].rstrip(b'\x00').decode('utf-8')
+
+            file_size = int(header[256:264].decode('utf-8'))
+            chunk_size = 1024
+            output_path = os.path.join(destination, file_name)
+
+            #will overwrite existing files
+            with open(output_path, 'wb') as output_file:
+                remaining_bytes = file_size
+                while remaining_bytes > 0:
+                    chunk = archive.read(min(chunk_size, remaining_bytes))
+                    if not chunk:
+                        raise ValueError(f"Unexpected end of file when reading {file_name}")
+                    output_file.write(chunk)
+                    remaining_bytes -= len(chunk)
+            print(f"Extracted: {file_name} ({file_size} bytes) to {output_path}")
 
 def unpack(args):
     # archive followed by a destination and a list of files

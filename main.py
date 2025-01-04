@@ -28,7 +28,7 @@ def create_archive(args):
                         target_files.append(os.path.join(root, file))
 
         else:
-            target_files.append(args[4:])
+            target_files += args[4:]
 
         for file_path in target_files:
             file_name = os.path.basename(file_path)
@@ -36,7 +36,7 @@ def create_archive(args):
 
             size_str = f"{file_size:08d}"
 
-            if len(file_name) > 3:
+            if len(file_name) > 256:
                 raise ValueError(f"File name '{file_name}' exceeds 256 characters and cannot fit in the header\n")
 
             header = file_name.encode('utf-8').ljust(256, b'\x00')  # File name padded to 256 bytes
@@ -54,7 +54,38 @@ def create_archive(args):
 
 def list_content(args):
     #file must be an archive
-    pass
+    archive_path = args[2]
+    if not os.path.isfile(archive_path):
+        raise ValueError("Archive does not exist\n")
+    if len(archive_path) < 4 or not archive_path.endswith('.pk'):
+        raise ValueError("Archive must end with .pk\n")
+
+    headers = []
+
+    with open(archive_path, "rb") as archive:
+        while True:
+            # Read the 264-byte header
+            header = archive.read(264)
+            if not header:
+                break  # End of file
+
+            # Extract file name (256 bytes, remove padding)
+            file_name = header[:256].rstrip(b'\x00').decode('utf-8')
+
+            # Extract file size (next 8 bytes)
+            file_size = int(header[256:264].decode('utf-8'))
+            # Store file details
+            headers.append((file_name, file_size))
+
+            # Skip the file content to move to the next header
+            archive.seek(file_size, 1)  # Move file pointer forward by `file_size` bytes
+
+    if sum(header[1] for header in headers) + 264 * len(headers) != os.path.getsize(archive_path):
+        raise ValueError("Corrupted archive. File Headers don't match file contents.\n")
+
+    print("File names and sizes:")
+    for (name, size) in headers:
+        print(name, ":", size)
 
 def full_unpack(args):
     #archive followed by a destination

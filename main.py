@@ -12,6 +12,24 @@ comms_to_desc = {
 def is_archive(filename):
     return filename.endswith('.pk') and os.path.isfile(filename)
 
+def get_headers(archive_path):
+    headers = []
+
+    with open(archive_path, "rb") as archive:
+        while True:
+            header = archive.read(264)
+            if not header:
+                break
+
+            file_name = header[:256].rstrip(b'\x00').decode('utf-8')
+
+            file_size = int(header[256:264].decode('utf-8'))
+            headers.append((file_name, file_size))
+
+            archive.seek(file_size, 1)
+
+    return headers
+
 def create_archive(args):
     if not os.path.isdir(args[2]):
         raise ValueError("Destination must be a directory\n")
@@ -62,20 +80,7 @@ def list_content(args):
     if len(archive_path) < 4 or not is_archive(archive_path):
         raise ValueError("Archive must end with .pk\n")
 
-    headers = []
-
-    with open(archive_path, "rb") as archive:
-        while True:
-            header = archive.read(264)
-            if not header:
-                break
-
-            file_name = header[:256].rstrip(b'\x00').decode('utf-8')
-
-            file_size = int(header[256:264].decode('utf-8'))
-            headers.append((file_name, file_size))
-
-            archive.seek(file_size, 1)
+    headers = get_headers(archive_path)
 
     if sum(header[1] for header in headers) + 264 * len(headers) != os.path.getsize(archive_path):
         raise ValueError("Corrupted archive. File Headers don't match file contents.\n")
@@ -115,6 +120,13 @@ def full_unpack(args):
 
 def unpack(args):
     # archive followed by a destination and a list of files
+    if not is_archive(args[2]) and not os.path.isdir(args[3]):
+        raise ValueError("Parameters must be an archive and a destination directory followed by a list of file names.\n")
+
+    file_names, _ = get_headers(args[2])
+    for file_name in args[4:]:
+        if file_name not in file_names:
+            raise ValueError(f"File '{file_name}' is not in the archive.\n")
     pass
 
 def help(args):

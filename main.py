@@ -11,14 +11,11 @@ comms_to_desc = {
 
 def create_archive(args):
     if not os.path.isdir(args[2]):
-        print("Destination must be a directory\n")
-        return
+        raise ValueError("Destination must be a directory\n")
     if os.path.isfile(os.path.join(args[2], args[3] + '.pk')):
-        print("Name already exists\n")
-        return
+        raise ValueError("Name already exists\n")
     if not (os.path.isdir(args[4]) and len(args) == 5 or all(os.path.isfile(file) for file in args[4:])):
-        print("Arguments must be either a list of files or a single directory\n")
-        return
+        raise ValueError("Arguments must be either a list of files or a single directory\n")
 
     with open(os.path.join(args[2], args[3] + '.pk'), 'wb') as archive:
         #if destination is a directory extract all the files from it
@@ -39,13 +36,12 @@ def create_archive(args):
 
             size_str = f"{file_size:08d}"
 
-            if len(file_name) > 256:
+            if len(file_name) > 3:
                 raise ValueError(f"File name '{file_name}' exceeds 256 characters and cannot fit in the header\n")
 
             header = file_name.encode('utf-8').ljust(256, b'\x00')  # File name padded to 256 bytes
             header += size_str.encode('utf-8')  # File size (8 bytes, big-endian)
 
-            print(file_size.to_bytes(8, byteorder='big'))
             archive.write(header)
 
             with open(file_path, "rb") as input_file:
@@ -70,12 +66,11 @@ def unpack(args):
 
 def help(args):
     if len(args) == 2:
-        print("Available commands:\n" + f"{' '.join(comms_to_desc.keys())}")
+        print("Available commands:\n" + f"{' '.join(comms_to_desc.keys())}\n")
         return
 
     if args[2] not in comms_to_desc:
-        print(f"Unknown command: {args[2]}\nUse \'help\' to see available commands\n")
-        return
+        raise ValueError(f"Unknown command: {args[2]}\nUse \'help\' to see available commands\n")
     print(comms_to_desc[args[2]])
 
 def is_valid(args):
@@ -107,6 +102,6 @@ if __name__ == "__main__":
         comms_to_func[sys.argv[1]](sys.argv)
     else:
         if len(sys.argv) > 1 and sys.argv[1] in comms_to_desc.keys():
-            print(f"\'{sys.argv[1]}\' command misused. Correct usage:\n" + comms_to_desc[sys.argv[1]])
+            raise ValueError(f"\'{sys.argv[1]}\' command misused. Correct usage:\n{comms_to_desc[sys.argv[1]]}")
         else:
-            print("Invalid command. Use \'help\' command to check available commands.\n")
+            raise ValueError("Invalid command. Use \'help\' command to check available commands.\n")

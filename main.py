@@ -12,6 +12,34 @@ comms_to_desc = {
 def is_archive(filename):
     return filename.endswith('.pk') and os.path.isfile(filename)
 
+def extract_files(archive_path, destination, files = None):
+    with open(archive_path, "rb") as archive:
+        while True:
+            header = archive.read(264)
+            if not header:
+                break
+
+            file_name = header[:256].rstrip(b'\x00').decode('utf-8')
+
+            file_size = int(header[256:264].decode('utf-8'))
+            chunk_size = 1024
+            output_path = os.path.join(destination, file_name)
+
+            if files and file_name not in files:
+                archive.seek(file_size, 1)
+                continue
+
+            # will overwrite existing files
+            with open(output_path, 'wb') as output_file:
+                remaining_bytes = file_size
+                while remaining_bytes > 0:
+                    chunk = archive.read(min(chunk_size, remaining_bytes))
+                    if not chunk:
+                        raise ValueError(f"Unexpected end of file when reading {file_name}")
+                    output_file.write(chunk)
+                    remaining_bytes -= len(chunk)
+            print(f"Extracted: {file_name} ({file_size} bytes) to {output_path}")
+
 def get_headers(archive_path):
     headers = []
 
@@ -94,29 +122,7 @@ def full_unpack(args):
     if not is_archive(args[2]) and not os.path.isdir(args[3]):
         raise ValueError("Parameters must be an archive and a destination directory.\n")
 
-    destination = args[3]
-    with open(args[2], "rb") as archive:
-        while True:
-            header = archive.read(264)
-            if not header:
-                break
-
-            file_name = header[:256].rstrip(b'\x00').decode('utf-8')
-
-            file_size = int(header[256:264].decode('utf-8'))
-            chunk_size = 1024
-            output_path = os.path.join(destination, file_name)
-
-            #will overwrite existing files
-            with open(output_path, 'wb') as output_file:
-                remaining_bytes = file_size
-                while remaining_bytes > 0:
-                    chunk = archive.read(min(chunk_size, remaining_bytes))
-                    if not chunk:
-                        raise ValueError(f"Unexpected end of file when reading {file_name}")
-                    output_file.write(chunk)
-                    remaining_bytes -= len(chunk)
-            print(f"Extracted: {file_name} ({file_size} bytes) to {output_path}")
+    extract_files(args[2], args[3])
 
 def unpack(args):
     # archive followed by a destination and a list of files
@@ -127,7 +133,8 @@ def unpack(args):
     for file_name in args[4:]:
         if file_name not in file_names:
             raise ValueError(f"File '{file_name}' is not in the archive.\n")
-    pass
+
+    extract_files(args[2], args[3], args[4:])
 
 def help(args):
     if len(args) == 2:

@@ -313,13 +313,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# if __name__ == "__main__":
-#     if is_valid(sys.argv):
-#         comms_to_func[sys.argv[1]](sys.argv)
-#     else:
-#         if len(sys.argv) > 1 and sys.argv[1] in comms_to_desc.keys():
-#             raise ValueError(f"\'{sys.argv[1]}\' command misused. Correct usage:\n{comms_to_desc[sys.argv[1]]}")
-#         else:
-#             raise ValueError("Invalid command. Use \'help\' command to check available commands.\n")

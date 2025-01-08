@@ -215,7 +215,7 @@ def unpack(args: list[str]) -> None:
             If the specified file names do not exist in the archive
     """
 
-    if not is_archive(args[1]) and not os.path.isdir(args[2]):
+    if not is_archive(args[1]) or not os.path.isdir(args[2]):
         raise ValueError("Parameters must be an archive and a destination directory followed by a list of file names.\n")
 
     file_names, _ = zip(*get_headers(args[1]))

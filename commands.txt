@@ -1,0 +1,12 @@
+List of commands to be run:
+
+help
+help create_archive
+create_archive ./demo arh ./demo
+help list_content
+list_content ./demo/arh.pk
+help full_unpack
+full_unpack ./demo/arh.pk ./demo/full_unpack
+help unpack
+unpack ./demo/arh.pk ./demo/unpack file1.txt file2.txt
+exit

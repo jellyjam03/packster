@@ -9,10 +9,10 @@ comms_to_desc = {
     "help": 'Gives information about command usage\nUsage: python main.py help (command)\n',
 }
 
-def is_archive(filename):
+def is_archive(filename: str) -> bool:
     return filename.endswith('.pk') and os.path.isfile(filename)
 
-def extract_files(archive_path, destination, files = None):
+def extract_files(archive_path: str, destination: str, files: list[str] = None) -> None:
     with open(archive_path, "rb") as archive:
         while True:
             header = archive.read(264)
@@ -40,7 +40,7 @@ def extract_files(archive_path, destination, files = None):
                     remaining_bytes -= len(chunk)
             print(f"Extracted: {file_name} ({file_size} bytes) to {output_path}")
 
-def get_headers(archive_path):
+def get_headers(archive_path: str) -> list[(str, int)]:
     headers = []
 
     with open(archive_path, "rb") as archive:
@@ -58,7 +58,7 @@ def get_headers(archive_path):
 
     return headers
 
-def create_archive(args):
+def create_archive(args: list[str]) -> None:
     if not os.path.isdir(args[2]):
         raise ValueError("Destination must be a directory\n")
     if os.path.isfile(os.path.join(args[2], args[3] + '.pk')):
@@ -100,7 +100,7 @@ def create_archive(args):
 
         archive.close()
 
-def list_content(args):
+def list_content(args: list[str]) -> None:
     #file must be an archive
     archive_path = args[2]
     if not os.path.isfile(archive_path):
@@ -117,14 +117,14 @@ def list_content(args):
     for (name, size) in headers:
         print(name, ":", size)
 
-def full_unpack(args):
+def full_unpack(args: list[str]) -> None:
     #archive followed by a destination
     if not is_archive(args[2]) and not os.path.isdir(args[3]):
         raise ValueError("Parameters must be an archive and a destination directory.\n")
 
     extract_files(args[2], args[3])
 
-def unpack(args):
+def unpack(args: list[str]) -> None:
     # archive followed by a destination and a list of files
     if not is_archive(args[2]) and not os.path.isdir(args[3]):
         raise ValueError("Parameters must be an archive and a destination directory followed by a list of file names.\n")
@@ -136,7 +136,7 @@ def unpack(args):
 
     extract_files(args[2], args[3], args[4:])
 
-def help(args):
+def help(args: list[str]) -> None:
     if len(args) == 2:
         print("Available commands:\n" + f"{' '.join(comms_to_desc.keys())}\n")
         return
@@ -145,7 +145,7 @@ def help(args):
         raise ValueError(f"Unknown command: {args[2]}\nUse \'help\' to see available commands\n")
     print(comms_to_desc[args[2]])
 
-def is_valid(args):
+def is_valid(args: list[str]) -> bool:
     if len(args) < 2:
         return False
     elif args[1] == 'create_archive':

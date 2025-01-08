@@ -10,9 +10,30 @@ comms_to_desc = {
 }
 
 def is_archive(filename: str) -> bool:
+    """Tests whether a file is an archive.
+
+    Args:
+        filename (str): File path
+
+    Returns:
+        True if file exists and ends with .pk
+        False otherwise
+    """
+
     return filename.endswith('.pk') and os.path.isfile(filename)
 
 def extract_files(archive_path: str, destination: str, files: list[str] = None) -> None:
+    """Extracts a list of files from an archive to a specified destination.
+
+    Args:
+        archive_path (str): Path to the archive
+        destination (str): Destination path
+        files (list[str]): The file names from the headers in the archive of the files to be extracted.
+                            If None is provided, the archive is unpacked fully.
+
+    Raises:
+        ValueError: If an error occurs while writing to destination"""
+
     with open(archive_path, "rb") as archive:
         while True:
             header = archive.read(264)
@@ -41,6 +62,15 @@ def extract_files(archive_path: str, destination: str, files: list[str] = None) 
             print(f"Extracted: {file_name} ({file_size} bytes) to {output_path}")
 
 def get_headers(archive_path: str) -> list[(str, int)]:
+    """Extracts all headers from an archive.
+
+    Args:
+        archive_path (str): Path to the archive
+
+    Returns:
+        list[(str, int)]: List of (filename, filesize) tuples
+        """
+
     headers = []
 
     with open(archive_path, "rb") as archive:
@@ -59,6 +89,23 @@ def get_headers(archive_path: str) -> list[(str, int)]:
     return headers
 
 def create_archive(args: list[str]) -> None:
+    """Creates an archive.
+
+    Args:
+        args (list[str]): List of arguments
+            args[0]: main.py
+            args[1]: create_archive
+            args[2]: destination
+            args[3]: archive name
+            args[4:]: either a list of files OR a single directory
+
+    Raises:
+        ValueError:
+            If the destination is not a directory
+            If the archive already exists
+            If the arguments are not either all files or a single directory
+            If a file's name exceeds 256 characters
+    """
     if not os.path.isdir(args[2]):
         raise ValueError("Destination must be a directory\n")
     if os.path.isfile(os.path.join(args[2], args[3] + '.pk')):
@@ -101,7 +148,21 @@ def create_archive(args: list[str]) -> None:
         archive.close()
 
 def list_content(args: list[str]) -> None:
-    #file must be an archive
+    """Lists the contents of an archive.
+
+    Args:
+        args (list[str]): List of arguments
+            args[0]: main.py
+            args[1]: list_content
+            args[2]: archive path
+
+    Raises:
+        ValueError:
+            If the archive path does not end with .pk
+            If the file does not exist
+            If the sum of the size of the files in the archive and the headers does not match the archive size
+        """
+
     archive_path = args[2]
     if not os.path.isfile(archive_path):
         raise ValueError("Archive does not exist\n")
@@ -118,14 +179,44 @@ def list_content(args: list[str]) -> None:
         print(name, ":", size)
 
 def full_unpack(args: list[str]) -> None:
-    #archive followed by a destination
+    """Fully unpacks an archive.
+
+    Args:
+         args (list[str]): List of arguments
+            args[0]: main.py
+            args[1]: full_unpack
+            args[2]: archive path
+            args[3]: destination
+
+    Raises:
+        ValueError:
+            If the archive doesn't end with .pk or doesn't exist
+            If the destination is not a directory
+    """
+
     if not is_archive(args[2]) and not os.path.isdir(args[3]):
         raise ValueError("Parameters must be an archive and a destination directory.\n")
 
     extract_files(args[2], args[3])
 
 def unpack(args: list[str]) -> None:
-    # archive followed by a destination and a list of files
+    """Unpacks specified files from an archive to a destination.
+
+    Args:
+        args (list[str]): List of arguments
+            args[0]: main.py
+            args[1]: unpack
+            args[2]: archive path
+            args[3]: destination
+            args[4:]: file names to be unpacked
+
+    Raises:
+        ValueError:
+            If the archive doesn't end with .pk or doesn't exist
+            If the destination is not a directory
+            If the specified file names do not exist in the archive
+    """
+
     if not is_archive(args[2]) and not os.path.isdir(args[3]):
         raise ValueError("Parameters must be an archive and a destination directory followed by a list of file names.\n")
 
@@ -137,6 +228,18 @@ def unpack(args: list[str]) -> None:
     extract_files(args[2], args[3], args[4:])
 
 def help(args: list[str]) -> None:
+    """Prints informative messages.
+
+    Args:
+        args (list[str]): List of arguments
+            args[0]: main.py
+            args[1]: help
+            args[2]: command (optional)
+
+    Raises:
+        ValueError: If the command is not recognized
+    """
+
     if len(args) == 2:
         print("Available commands:\n" + f"{' '.join(comms_to_desc.keys())}\n")
         return
@@ -146,6 +249,17 @@ def help(args: list[str]) -> None:
     print(comms_to_desc[args[2]])
 
 def is_valid(args: list[str]) -> bool:
+    """Checks whether a command is available and called with the right number of arguments.
+
+    Args:
+        args (list[str]): List of arguments
+            args[0]: main.py
+            args[1]: command
+
+    Returns:
+        True if the command is valid
+        False otherwise
+    """
     if len(args) < 2:
         return False
     elif args[1] == 'create_archive':
